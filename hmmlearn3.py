@@ -18,6 +18,12 @@ def outputInput():
 def captureCount():
     for x in inputlines:
         parse(x)
+    for t in listOfTags:
+        myset.add(t)
+    # myset = set(listOfTags)
+    myset.add('START')
+    formatTransisition()
+    formatEmission()
 
 def parse(string):
    words = string.split()
@@ -25,6 +31,7 @@ def parse(string):
    count = 0  
    for x in words:
       tags = x.split("/")
+      listOfTags.append(tags[1])
       if(count==0):
           startTuple = ('START',tags[1])
           transisitionCount[startTuple] += 1
@@ -33,26 +40,47 @@ def parse(string):
       else:
           countEmissionAndTransistion(words_tags[len(words_tags)-1],tags)
           count +=1
-      words_tags.append(tags)     
+      words_tags.append(tags)
+
+def formatTransisition():
+    for x in myset:
+        for y in myset:
+            trans_probability[x][y] = transisitionCount[(x,y)]
+
+def formatEmission():
+    for key, value in emissionCount.items():
+        emission_probability[key[0]][key[1]] = value            
 
 def countEmissionAndTransistion(prev_tags,tags):
     transisitionCount[(prev_tags[1],tags[1])] += 1 
     emissionCount[(tags[0],tags[1])] +=1
 
-def outputCOunts():
+def outputCounts():
     pprint(transisitionCount)
     pprint(emissionCount)
+    pprint(listOfTags)
 
+def outputProbs():
+    #pprint(trans_probability)
+    pprint(emission_probability)    
+
+
+myset = set()
+transisitionCount = defaultdict(int)
+emissionCount = defaultdict(int)
+trans_probability = defaultdict(lambda: defaultdict(int))
+emission_probability = defaultdict(lambda: defaultdict(int))
+
+global inputLines   
+listOfTags = []
+    
 def main():
     readFileToString()
     #outputInput()
     captureCount()
-    outputCOunts()
-
-transisitionCount = defaultdict(int)
-emissionCount = defaultdict(int)
-
-global inputLines   
+    # outputCounts()
+    outputProbs()
+        
 if __name__ == '__main__':
     main()
-    
+        
