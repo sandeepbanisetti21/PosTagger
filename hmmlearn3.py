@@ -1,6 +1,7 @@
 import sys
 from pprint import pprint
 from collections import defaultdict
+from decimal import Decimal
 inputlines = []
 
 def readFileToString():
@@ -20,7 +21,6 @@ def captureCount():
         parse(x)
     for t in listOfTags:
         myset.add(t)
-    # myset = set(listOfTags)
     myset.add('START')
     formatTransisition()
     formatEmission()
@@ -49,7 +49,15 @@ def formatTransisition():
 
 def formatEmission():
     for key, value in emissionCount.items():
-        emission_probability[key[0]][key[1]] = value            
+        emission_probability[key[1]][key[0]] = value            
+
+    for key,value in emission_probability.items():
+        keyCount = 0
+        for innerkey, innervalue in value.items():
+            keyCount = keyCount + innervalue
+
+        for innerkey,innervalue in value.items():
+            emission_probability[key][innerkey] = Decimal.log10(Decimal(innervalue)/(Decimal(keyCount)))
 
 def countEmissionAndTransistion(prev_tags,tags):
     transisitionCount[(prev_tags[1],tags[1])] += 1 
@@ -61,15 +69,25 @@ def outputCounts():
     pprint(listOfTags)
 
 def outputProbs():
-    #pprint(trans_probability)
+    pprint(trans_probability)
     pprint(emission_probability)    
 
+def performsmoothing():
+    for key,value in trans_probability.items():
+        keyCount = 0
+        for innerkey, innervalue in value.items():
+            keyCount = keyCount + innervalue
+        smoothedvalue = keyCount + len(myset)
+        for innerkey,innervalue in value.items():
+            if(innerkey!='START'):
+                trans_probability[key][innerkey] = Decimal.log10(Decimal(trans_probability[key][innerkey] + 1)/Decimal(smoothedvalue))
+              
 
 myset = set()
 transisitionCount = defaultdict(int)
 emissionCount = defaultdict(int)
-trans_probability = defaultdict(lambda: defaultdict(int))
-emission_probability = defaultdict(lambda: defaultdict(int))
+trans_probability = defaultdict(lambda: defaultdict(float))
+emission_probability = defaultdict(lambda: defaultdict(float))
 
 global inputLines   
 listOfTags = []
@@ -78,9 +96,10 @@ def main():
     readFileToString()
     #outputInput()
     captureCount()
-    # outputCounts()
+    #outputCounts()
+    performsmoothing()
     outputProbs()
-        
+
 if __name__ == '__main__':
     main()
         
