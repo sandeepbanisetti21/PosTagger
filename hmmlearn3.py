@@ -2,7 +2,6 @@ import sys
 from pprint import pprint
 from collections import defaultdict
 from decimal import Decimal
-import pickle
 import json
 import math
 inputlines = []
@@ -55,7 +54,7 @@ def countEmissionAndTransistion(prev_tags,tags):
 def calculateProbs():
     for key, value in emissionCount.items():
         #print("key is {} value is {}".format(key,value))
-        emission_probability[key[1]][key[0]] = math.log10(value/(tagCount[key[1]]))
+        emission_probability[key[0]][key[1]] = math.log10(value/(tagCount[key[1]]))
 
     for key,value in transisitionCount.items():
         trans_probability[key[0]][key[1]] = math.log10(value/(len(myset)+ tagCount[key[0]]))    
@@ -72,11 +71,26 @@ def performsmoothing():
 def convertToJson(map):
     return [{'key':k, 'value': v} for k, v in map.items()]
 
-def writeProbs():
+def getTagProbabilities():
+    probs = {}
+    totalCountOfValues = 0
+    for key,value in tagCount.items():
+        totalCountOfValues = totalCountOfValues+value
+    #print(totalCountOfValues)    
+    for (key,value) in tagCount.items():
+        #print("value {} totalCountOfValues {}".format(value,totalCountOfValues))
+        probs[key] = math.log10(value/totalCountOfValues)
+    return probs
+
+def writeProbs():    
+    del tagCount['START']
+    del tagCount['END']
+    tagProbabilities = getTagProbabilities()
     data = {}
     data['trans_probability'] = trans_probability
     data['emission_probability'] = emission_probability
     data['tag_count'] = tagCount
+    data['tag_probabilities'] = tagProbabilities
     x = json.dumps(data)    
     with open('hmmmodel.txt','w') as file:
         file.write(x)
@@ -86,7 +100,7 @@ myset = set()
 transisitionCount = defaultdict(int)
 emissionCount = defaultdict(int)
 trans_probability = defaultdict(lambda: defaultdict(float))
-emission_probability = defaultdict(lambda: defaultdict(float))
+emission_probability = defaultdict(lambda: defaultdict(lambda: float('-inf')))
 tagCount = defaultdict(int)
 
 
@@ -100,6 +114,7 @@ def main():
     calculateProbs()
     #outputProbs()
     writeProbs()
+    #pprint(emissionCount)
 
 if __name__ == '__main__':
     main()
