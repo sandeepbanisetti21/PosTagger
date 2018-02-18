@@ -2,6 +2,7 @@ import json
 from pprint import pprint
 import sys
 from collections import defaultdict
+import codecs
 
 trans_probability = {}
 emission_probability = {}
@@ -33,7 +34,7 @@ def printData():
 def readInput():
     global inputlines
     filename = sys.argv[1]
-    with open(filename) as f:
+    with open(filename,encoding="utf8") as f:
         inputlines = f.readlines()
 
 
@@ -41,7 +42,8 @@ def processLines():
     outputlines = []
     lengthOfTags = len(tagList)
     for line in inputlines:
-        outputlines.append(hmm(line, lengthOfTags))
+        x = hmm(line, lengthOfTags)
+        outputlines.append(x)
     return outputlines
 
 
@@ -80,7 +82,8 @@ def hmm(line, lengthOfTags):
     string = ''
     for i in range(0,lengthOfwords):
         string = string + words[i]+'/'+taggedPos[i]+' '
-    print(string.strip())    
+    #print(string.strip())
+    return string.strip()    
     
 
 
@@ -132,12 +135,12 @@ def handleEndState(lengthOfTags, wordCounter, hmmProbs, backPointer):
 
 
 def main():
-    data = json.load(open('hmmmodel.txt'))
+    data = json.load(open('hmmmodel.txt',encoding='utf-8'))
     transformData(data)
     readInput()
     # printData()
     result = processLines()
-    thefile = open('hmmoutput.txt', 'w')
+    thefile = open('hmmoutput.txt', 'w', encoding='utf-8')
     for item in result:
       thefile.write("%s\n" % item)
 

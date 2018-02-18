@@ -4,12 +4,23 @@ from collections import defaultdict
 from decimal import Decimal
 import json
 import math
+import re
 inputlines = []
+
+def superSplit(word):
+    pair = []
+    tags = re.split('(/)',word)
+    tagsLength = len(tags)
+    x = tags[tagsLength-1]
+    word = "".join(tags[0:tagsLength-2])
+    pair.append(word)
+    pair.append(x)
+    return pair  
 
 def readFileToString():
     global inputlines
     filename = sys.argv[1]
-    with open(filename) as f:
+    with open(filename,encoding="utf8") as f:
         inputlines = f.readlines()
 
 def captureCount():
@@ -26,7 +37,7 @@ def parse(string):
    words_tags = []
    count = 0  
    for x in words:
-      tags = x.split("/")
+      tags = superSplit(x)
       listOfTags.append(tags[1])
       if(count==0):
           startTuple = ('START',tags[1])
@@ -91,8 +102,8 @@ def writeProbs():
     data['emission_probability'] = emission_probability
     data['tag_count'] = tagCount
     data['tag_probabilities'] = tagProbabilities
-    x = json.dumps(data)    
-    with open('hmmmodel.txt','w') as file:
+    x = json.dumps(data,ensure_ascii=False)    
+    with open('hmmmodel.txt','w',encoding='utf-8') as file:
         file.write(x)
 
 
