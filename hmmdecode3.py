@@ -6,6 +6,7 @@ from collections import defaultdict
 trans_probability = {}
 emission_probability = {}
 tagList = []
+tagProbability = {}
 inputlines = []
 
 
@@ -13,9 +14,11 @@ def transformData(data):
     global trans_probability
     global emission_probability
     global tagList
+    global tagProbability
     trans_probability = data['trans_probability']
     emission_probability = data['emission_probability']
     tagList = list(data['tag_count'].keys())
+    tagProbability = data['tag_probabilities']
 
 
 def printData():
@@ -45,13 +48,10 @@ def processLines():
 def hmm(line, lengthOfTags):
     words = line.split()
     lengthOfwords = len(words)
-
     backPointer = defaultdict(str)
     hmmProbs = [[0 for x in range(lengthOfwords)] for y in range(lengthOfTags)]
-    
-
-    hmmProbs,backPointer = handleStartState(lengthOfTags,words[0],hmmProbs,backPointer)
-    print(hmmProbs)
+    hmmProbs, backPointer = handleStartState(
+        lengthOfTags, words[0], hmmProbs, backPointer)
 
     for wordCounter in range(1, lengthOfwords):
         for tagCounter in range(0, lengthOfTags):
@@ -59,27 +59,39 @@ def hmm(line, lengthOfTags):
             backPointerValue = None
             for prevTagCounter in range(0, lengthOfTags):
                 nodeProb = getTransmissionProbability(
-                    tagList[prevTagCounter], tagList[tagCounter]) + hmmProbs[prevTagCounter][wordCounter-1]    
+                    tagList[prevTagCounter], tagList[tagCounter]) + hmmProbs[prevTagCounter][wordCounter-1]
                 if(nodeProb > nodeToNodeTranProbability):
                     nodeToNodeTranProbability = nodeProb
-                    backPointerValue = prevTagCounter          
-            viterbi_probs = getEmissionProbability(tagList[tagCounter],words[wordCounter]) + nodeToNodeTranProbability
+                    backPointerValue = prevTagCounter
+            #print("Emission Probabiity: {} nodeToNode probability {}".format(getEmissionProbability(
+             #   tagList[tagCounter], words[wordCounter]), nodeToNodeTranProbability))
+            
+            viterbi_probs = getEmissionProbability(
+                tagList[tagCounter], words[wordCounter]) + nodeToNodeTranProbability
+            
             hmmProbs[tagCounter][wordCounter] = viterbi_probs
-            #print(backPointerValue)
-            backPointer[(tagList[tagCounter],wordCounter)] = tagList[backPointerValue]
+            # print(backPointerValue)
+            backPointer[(tagList[tagCounter], wordCounter)
+                        ] = tagList[backPointerValue]
 
-    lastBackPointer = handleEndState(lengthOfTags,lengthOfwords-1,hmmProbs,backPointer)
-    taggedPos = decode(lastBackPointer,backPointer,words)
-    print(taggedPos)
+    lastBackPointer = handleEndState(lengthOfTags, lengthOfwords-1, hmmProbs, backPointer)
+    #print(lastBackPointer)
+    taggedPos = decode(lastBackPointer, backPointer, words)
+    string = ''
+    for i in range(0,lengthOfwords):
+        string = string + words[i]+'/'+taggedPos[i]+' '
+    print(string.strip())    
     
-                    
-def decode(lastBackPointer,backPointer, words):
+
+
+def decode(lastBackPointer, backPointer, words):
+    #print(lastBackPointer)
     lengthofWords = len(words)
     tagResult = []
-    tagResult.insert(0,lastBackPointer)
-    for index in range (lengthofWords-1,0,-1):
-        pointer = backPointer[(lastBackPointer,index)]
-        tagResult.insert(pointer,0)
+    tagResult.insert(0, lastBackPointer)
+    for index in range(lengthofWords-1, 0, -1):
+        pointer = backPointer[(lastBackPointer, index)]
+        tagResult.insert(0, pointer)
         lastBackPointer = pointer
     return tagResult
 
@@ -89,29 +101,34 @@ def getTransmissionProbability(prevtag, tag):
 
 
 def getEmissionProbability(tag, word):
-    if word in emission_probability[tag]:
-        return emission_probability[tag][word]
+    if word in emission_probability.keys():
+        if tag in emission_probability[word].keys():
+            return emission_probability[word][tag]
+        else:
+            return float('-inf')
     else:
-        return float('-inf')    
+        return tagProbability[tag]
 
-def handleStartState(lengthOfTags,word,hmmProbs,backPointer):
-     for tagCounter in range(0, lengthOfTags):
+
+def handleStartState(lengthOfTags, word, hmmProbs, backPointer):
+    for tagCounter in range(0, lengthOfTags):
         em_prob = getEmissionProbability(tagList[tagCounter], word)
         tran_prob = getTransmissionProbability('START', tagList[tagCounter])
         hmmProbs[tagCounter][0] = em_prob + tran_prob
-        backPointer[(tagList[tagCounter],0)] = 'START'
-     return hmmProbs,backPointer
+        backPointer[(tagList[tagCounter], 0)] = 'START'
+    return hmmProbs, backPointer
 
-def handleEndState(lengthOfTags,wordCounter,hmmProbs,backPointer):
+
+def handleEndState(lengthOfTags, wordCounter, hmmProbs, backPointer):
     nodeToNodeProbability = float('-inf')
-    for tagCounter in range (0,lengthOfTags):
+    backPointerValue = None
+    for tagCounter in range(0, lengthOfTags):
         nodeProb = getTransmissionProbability(
-                    tagList[tagCounter], 'END') + hmmProbs[tagCounter][wordCounter-1]
+            tagList[tagCounter], 'END') + hmmProbs[tagCounter][wordCounter]
         if(nodeProb > nodeToNodeProbability):
             nodeToNodeProbability = nodeProb
             backPointerValue = tagCounter
     return tagList[backPointerValue]
-
 
 
 def main():
@@ -120,6 +137,9 @@ def main():
     readInput()
     # printData()
     result = processLines()
+    thefile = open('hmmoutput.txt', 'w')
+    for item in result:
+      thefile.write("%s\n" % item)
 
 
 if __name__ == '__main__':
